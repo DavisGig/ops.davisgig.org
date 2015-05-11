@@ -35,7 +35,7 @@ echo "Staged to $workdir/stage"
 
 echo "Deploying..."
 rcmd mkdir -p "$TARGET_DIR"
-releasedir=$(rcmd mktemp -d -p "$TARGET_DIR" "$version.XXXX")
+releasedir=$(rcmd mktemp -d "$TARGET_DIR/$version.XXXX")
 rsync --progress -ayy --link-dest="$TARGET_DIR/latest" \
   "$workdir/stage/" "$TARGET_HOST:$releasedir/"
 rcmd ln -sfT "$releasedir" "$TARGET_DIR/latest"

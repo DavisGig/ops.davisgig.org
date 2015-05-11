@@ -1,0 +1,6 @@
+[submodule "src/davisgig.org"]
+	path = src/davisgig.org
+	url = https://github.com/DavisGig/davisgig.org.git
+[submodule "src/api.davisgig.org"]
+	path = src/api.davisgig.org
+	url = https://github.com/DavisGig/api.davisgig.org.git

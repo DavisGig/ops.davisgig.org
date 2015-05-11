@@ -1,0 +1,40 @@
+#!/bin/bash
+set -euf -o pipefail
+cd "$(dirname "$0")"
+source ./config
+
+rcmd(){ ssh "$TARGET_HOST" "$@"; }
+
+if [[ -n "$(git status --porcelain)" ]]; then
+  echo "Dirty working tree; aborting." >&2
+  exit 1
+fi
+
+mkdir -p "$WORKROOT"
+version=$(git describe --always)
+workdir=$(readlink -f "$(mktemp -d "$WORKROOT/$version.XXXX")")
+git submodule --quiet foreach "
+  git archive --format tar --prefix build/\${name##*/}/ \$sha1 | tar -x -C $workdir
+"
+
+echo "Building front-end..."
+(
+  cd "$workdir/build/davisgig.org"
+  npm install
+  bower install
+  gulp init build --production
+)
+
+echo "Staging..."
+mkdir "$workdir/stage"
+cp -lR "$workdir/build/davisgig.org/build/prod" "$workdir/stage/www"
+cp -lR "$workdir/build/api.davisgig.org" "$workdir/stage/api"
+
+echo "Deploying..."
+rcmd mkdir -p "$TARGET_DIR"
+releasedir=$(rcmd mktemp -d -p "$TARGET_DIR" "$version.XXXX")
+rsync --progress -ayy --copy-dest="$TARGET_DIR/latest" \
+  "$workdir/stage/" "$TARGET_HOST:$releasedir/"
+rcmd chmod -R +rX "$releasedir"
+rcmd ln -sfT "$releasedir" "$TARGET_DIR/latest"
+echo "Deployed to $TARGET_HOST:$releasedir"

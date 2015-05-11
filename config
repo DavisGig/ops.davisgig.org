@@ -1,0 +1,3 @@
+WORKROOT=var/work
+TARGET_HOST=davisgig@davisgig.org
+TARGET_DIR=/srv/davisgig/release

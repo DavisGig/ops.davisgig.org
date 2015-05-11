@@ -29,12 +29,12 @@ echo "Staging..."
 mkdir "$workdir/stage"
 cp -lR "$workdir/build/davisgig.org/build/prod" "$workdir/stage/www"
 cp -lR "$workdir/build/api.davisgig.org" "$workdir/stage/api"
+chmod -R +rX,-w "$workdir/stage"
 
 echo "Deploying..."
 rcmd mkdir -p "$TARGET_DIR"
 releasedir=$(rcmd mktemp -d -p "$TARGET_DIR" "$version.XXXX")
-rsync --progress -ayy --copy-dest="$TARGET_DIR/latest" \
+rsync --progress -ayy --link-dest="$TARGET_DIR/latest" \
   "$workdir/stage/" "$TARGET_HOST:$releasedir/"
-rcmd chmod -R +rX "$releasedir"
 rcmd ln -sfT "$releasedir" "$TARGET_DIR/latest"
 echo "Deployed to $TARGET_HOST:$releasedir"

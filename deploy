@@ -10,6 +10,7 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
+echo "Checking out source..."
 mkdir -p "$WORKROOT"
 version=$(git describe --always)
 workdir=$(readlink -f "$(mktemp -d "$WORKROOT/$version.XXXX")")
@@ -30,6 +31,7 @@ mkdir "$workdir/stage"
 cp -lR "$workdir/build/davisgig.org/build/prod" "$workdir/stage/www"
 cp -lR "$workdir/build/api.davisgig.org" "$workdir/stage/api"
 chmod -R +rX,-w "$workdir/stage"
+echo "Staged to $workdir/stage"
 
 echo "Deploying..."
 rcmd mkdir -p "$TARGET_DIR"

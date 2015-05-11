@@ -38,5 +38,13 @@ rcmd mkdir -p "$TARGET_DIR"
 releasedir=$(rcmd mktemp -d "$TARGET_DIR/$version.XXXX")
 rsync --progress -ayy --link-dest="$TARGET_DIR/latest" \
   "$workdir/stage/" "$TARGET_HOST:$releasedir/"
+restart_api=
+if ! (rcmd diff -qr "$releasedir/api" "$TARGET_DIR/latest/api"); then
+  rcmd /srv/davisgig/venv/bin/pip install -r "$releasedir/api/requirements.txt"
+  restart_api=y
+fi
 rcmd ln -sfT "$releasedir" "$TARGET_DIR/latest"
+if [[ -n "$restart_api" ]]; then
+  rcmd sudo /etc/init.d/supervisor restart
+fi
 echo "Deployed to $TARGET_HOST:$releasedir"

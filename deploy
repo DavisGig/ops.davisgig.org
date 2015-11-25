@@ -10,6 +10,9 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
+#
+# Get clean checkouts of all submoduled sources
+#
 echo "Checking out source..."
 mkdir -p "$WORKROOT"
 version=$(git describe --always)
@@ -18,6 +21,9 @@ git submodule --quiet foreach "
   git archive --format tar --prefix build/\${name##*/}/ \$sha1 | tar -x -C $workdir
 "
 
+#
+# Build front-end
+#
 echo "Building front-end..."
 (
   cd "$workdir/build/davisgig.org"
@@ -26,6 +32,9 @@ echo "Building front-end..."
   gulp init build --production
 )
 
+#
+# Copy files into a local staging directory
+#
 echo "Staging..."
 mkdir "$workdir/stage"
 cp -lR "$workdir/build/davisgig.org/build/prod" "$workdir/stage/www"
@@ -33,18 +42,32 @@ cp -lR "$workdir/build/api.davisgig.org" "$workdir/stage/api"
 chmod -R +rX,-w "$workdir/stage"
 echo "Staged to $workdir/stage"
 
+#
+# Remote deployment of staged files
+#
 echo "Deploying..."
+
+# Remote setup
 rcmd mkdir -p "$TARGET_DIR"
 releasedir=$(rcmd mktemp -d "$TARGET_DIR/$version.XXXX")
+
+# Send over files
 rsync --progress -ayy --link-dest="$TARGET_DIR/latest" \
   "$workdir/stage/" "$TARGET_HOST:$releasedir/"
+
+# Queue an API restart if it changed since the current release.
 restart_api=
 if ! (rcmd diff -qr "$releasedir/api" "$TARGET_DIR/latest/api"); then
   rcmd /srv/davisgig/venv/bin/pip install -r "$releasedir/api/requirements.txt"
   restart_api=y
 fi
+
+# Update the 'latest' symlink to point to the release we just uploaded.
 rcmd ln -sfT "$releasedir" "$TARGET_DIR/latest"
+
+# Restart the API if we found it necessary earlier.
 if [[ -n "$restart_api" ]]; then
   rcmd sudo /etc/init.d/supervisor restart
 fi
+
 echo "Deployed to $TARGET_HOST:$releasedir"
